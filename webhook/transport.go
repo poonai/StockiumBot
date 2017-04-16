@@ -8,6 +8,6 @@ import "net/http"
 func MakeHandler(svc Service) http.Handler {
 	echoHandler := httptransport.NewServer(makeEchoEndpoint(svc), echoRequestDecoder, echoResponseEncoder)
 	h := mux.NewRouter()
-	h.Handle("/webhook/", echoHandler).Methods("POST")
+	h.Handle("/", echoHandler).Methods("POST")
 	return h
 }

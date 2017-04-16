@@ -2,6 +2,7 @@ package fb
 
 import (
 	"net/url"
+	"os"
 
 	"github.com/franela/goreq"
 )
@@ -13,7 +14,7 @@ func Send(id string, msg string) error {
 		Message   map[string]interface{} `json:"message"`
 	}
 	query := url.Values{}
-	query.Add("access_token", "EAAUT2AD6M4YBANRGGFlNQ3lfqtYslHjq3vy2O56ZA18WC3B2gCid2BKYlRXWlD7EoZBFvSMejKvapCQpYlFOCeNb88eJ0NftaD1r6ypnuMcuBKPW0o35kmMc99LougKoZBoUpmoIOMnqZAEs0s0fZCOJNu3F2zJTVrite5BjKKAZDZD")
+	query.Add("access_token", os.Getenv("FB_PAGE_TOKEN"))
 	_, err := goreq.Request{
 		Uri:         "https://graph.facebook.com/v2.6/me/messages",
 		QueryString: query,
@@ -38,6 +39,7 @@ type StockSuggestion struct {
 	url  string
 }
 
+// SendStockSuggestion will send the post callback button to the uesr id
 func SendStockSuggestion(id string, suggestion []StockSuggestion) {
 
 }

@@ -3,6 +3,8 @@ package screener
 import (
 	"encoding/json"
 	"net/url"
+	"os"
+	"strconv"
 
 	"github.com/franela/goreq"
 )
@@ -10,12 +12,13 @@ import (
 // StockSuggestion will be having the suggestion of stocks
 type StockSuggestion struct {
 	Name string `json:"name"`
-	ID   int64  `json:"id"`
+	ID   int    `json:"id"`
 }
 
 // SearchAPI for searching stocks from screener.in
-const (
-	SearchAPI = "https://www.screener.in/api/company/search/"
+var (
+	SearchAPI        = os.Getenv("SCREENER_SEARCH")
+	FinancialDataAPI = os.Getenv("SCREENER_FINANCIAL")
 )
 
 // SearchStock will scrape stocks from screener.in
@@ -38,26 +41,14 @@ func SearchStock(q string) ([]StockSuggestion, error) {
 	return suggestion, nil
 }
 
-// StockDeatail will be having the detail of stocks
-type StockDeatail struct {
+// FinancialData will be having the detail of stocks
+type FinancialData struct {
 	Prime     string `json:"prime"`
 	NumberSet struct {
-		Balancesheet []struct {
-			Num0 string                 `json:"0"`
-			Num1 map[string]interface{} `json:"1"`
-		} `json:"balancesheet"`
-		Annual []struct {
-			Num0 string                 `json:"0"`
-			Num1 map[string]interface{} `json:"1"`
-		} `json:"annual"`
-		Cashflow []struct {
-			Num0 string                 `json:"0"`
-			Num1 map[string]interface{} `json:"1"`
-		} `json:"cashflow"`
-		Quarters []struct {
-			Num0 string                 `json:"0"`
-			Num1 map[string]interface{} `json:"1"`
-		} `json:"quarters"`
+		Balancesheet []interface{} `json:"balancesheet"`
+		Annual       []interface{} `json:"annual"`
+		Cashflow     []interface{} `json:"cashflow"`
+		Quarters     []interface{} `json:"quarters"`
 	} `json:"number_set"`
 	BseCode          string        `json:"bse_code"`
 	ShortName        string        `json:"short_name"`
@@ -88,7 +79,7 @@ type StockDeatail struct {
 		Status                       string      `json:"status"`
 		PairURL                      interface{} `json:"pair_url"`
 		SalesGrowth10Years           float64     `json:"sales_growth_10years"`
-		AverageReturnOnEquity10Years float64     `json:"average_return_on_equity_10years"`
+		AverageReturnOnEquity10Years interface{} `json:"average_return_on_equity_10years"`
 		ProfitGrowth                 float64     `json:"profit_growth"`
 		MarketCapitalization         float64     `json:"market_capitalization"`
 		ProfitGrowth10Years          interface{} `json:"profit_growth_10years"`
@@ -107,4 +98,23 @@ type StockDeatail struct {
 	} `json:"warehouse_set"`
 	ID   int    `json:"id"`
 	Name string `json:"name"`
+}
+
+// GetFinancialData returns FinancialData data
+func GetFinancialData(ID int) (FinancialData, error) {
+	uri := FinancialDataAPI + strconv.Itoa(ID) + "/"
+	res, err := goreq.Request{
+		Uri:    uri,
+		Accept: "application/json",
+	}.Do()
+	if err != nil {
+		return FinancialData{}, err
+	}
+
+	var data FinancialData
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return FinancialData{}, err
+	}
+	return data, nil
 }

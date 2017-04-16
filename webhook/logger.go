@@ -25,7 +25,7 @@ func (l logger) echo(id string, msg string) string {
 				"service":  "echo",
 				"message":  msg,
 			},
-		)
+		).Info("Echo service")
 	}(time.Now())
 	return l.s.echo(id, msg)
 }
