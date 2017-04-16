@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 
 	"net/http"
 
@@ -17,7 +18,8 @@ type request struct {
 				ID string `json:"id"`
 			} `json:"sender"`
 			Message struct {
-				Text string `json:"text"`
+				Text       string                 `json:"text"`
+				QuickReply map[string]interface{} `json:"quick_reply"`
 			} `json:"message"`
 		} `json:"messaging"`
 	} `json:"entry"`
@@ -27,7 +29,8 @@ type request struct {
 func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		r := req.(request)
-		result := svc.echo(r.Entry[0].Messaging[0].Sender.ID, r.Entry[0].Messaging[0].Message.Text)
+
+		result := svc.echo(r)
 		return result, nil
 	}
 }
@@ -35,11 +38,13 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 // EchoRequestDecoder is used to decode the request
 func echoRequestDecoder(_ context.Context, r *http.Request) (interface{}, error) {
 	var req request
-	//	s, _ := ioutil.ReadAll(r.Body)
+
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Print(req)
+
 	return req, nil
 }
 

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
 
@@ -11,6 +13,7 @@ import (
 )
 
 func main() {
+	fmt.Print(strconv.FormatFloat(23.23, 'f', 2, 64))
 	log := logrus.New()
 	var ws webhook.Service
 	ws = webhook.NewService()

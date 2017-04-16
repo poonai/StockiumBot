@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/franela/goreq"
 )
@@ -12,7 +11,8 @@ import (
 // StockSuggestion will be having the suggestion of stocks
 type StockSuggestion struct {
 	Name string `json:"name"`
-	ID   int    `json:"id"`
+	ID   int64  `json:"id"`
+	Url  string `json:"url"`
 }
 
 // SearchAPI for searching stocks from screener.in
@@ -101,8 +101,8 @@ type FinancialData struct {
 }
 
 // GetFinancialData returns FinancialData data
-func GetFinancialData(ID int) (FinancialData, error) {
-	uri := FinancialDataAPI + strconv.Itoa(ID) + "/"
+func GetFinancialData(ID string) (FinancialData, error) {
+	uri := FinancialDataAPI + ID
 	res, err := goreq.Request{
 		Uri:    uri,
 		Accept: "application/json",
