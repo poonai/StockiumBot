@@ -3,20 +3,31 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
 
 	"github.com/go-zoo/bone"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/sch00lb0y/StockiumBot/repo/mongo"
 	"github.com/sch00lb0y/StockiumBot/webhook"
+	"gopkg.in/mgo.v2"
 )
 
 func main() {
 	fmt.Print(strconv.FormatFloat(23.23, 'f', 2, 64))
+	session, err := mgo.Dial(os.Getenv("DB_URL"))
+	if err != nil {
+		panic(err.Error())
+	}
+	db := session.DB("stockiumbot")
+	fbCollection := db.C("fb")
 	log := logrus.New()
 	var ws webhook.Service
-	ws = webhook.NewService()
+	var wrepo webhook.Repo
+	wrepo = mongo.NewRepo(fbCollection)
+	ws = webhook.NewService(wrepo)
 	ws = webhook.NewLogger(log, ws)
 	wsHandler := webhook.MakeHandler(ws)
 	bone := bone.New()
