@@ -22,6 +22,9 @@ type request struct {
 				Text       string                 `json:"text"`
 				QuickReply map[string]interface{} `json:"quick_reply"`
 			} `json:"message"`
+			PostBack struct {
+				Payload string `json:"payload"`
+			} `json:"postback"`
 		} `json:"messaging"`
 	} `json:"entry"`
 }
@@ -44,7 +47,20 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 				break
 			}
 		} else {
-			go svc.sendSuggestion(r.Entry[0].Messaging[0].Sender.ID, r.Entry[0].Messaging[0].Message.Text)
+			if r.Entry[0].Messaging[0].PostBack.Payload != "" {
+				payload := r.Entry[0].Messaging[0].PostBack.Payload
+				sep := strings.Split(payload, ":")
+				if sep[0] == "COMMAND" {
+					switch sep[1] {
+					case "VIEWWATCHLIST":
+						fmt.Print("add wish list")
+						break
+					}
+				}
+			} else {
+				go svc.sendSuggestion(r.Entry[0].Messaging[0].Sender.ID, r.Entry[0].Messaging[0].Message.Text)
+			}
+
 		}
 
 		//result := svc.echo(r)

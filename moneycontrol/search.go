@@ -2,8 +2,10 @@ package moneycontrol
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/franela/goreq"
 )
 
@@ -15,6 +17,7 @@ type StockSuggestion struct {
 	Sector    string `json:"sc_sector"`
 }
 
+// SearchStock will search stock from money control
 func SearchStock(q string) ([]StockSuggestion, error) {
 	query := url.Values{}
 	query.Add("query", q)
@@ -34,4 +37,29 @@ func SearchStock(q string) ([]StockSuggestion, error) {
 		return nil, err
 	}
 	return resJson, nil
+}
+
+// Quote will be having the price of specific stock
+type Quote struct {
+	Price         string `json:"price"`
+	Change        string `json:"change"`
+	ChangePercent string `json:"changePercent"`
+}
+
+func GetQuote(code string) (Quote, error) {
+	suggestion, err := SearchStock(code)
+	if err != nil {
+		return Quote{}, err
+	}
+	doc, err := goquery.NewDocument(suggestion[0].LinkSrc)
+	if err != nil {
+		return Quote{}, err
+	}
+	var quote Quote
+	if doc.Find("#Nse_Prc_tick").Text() != "" {
+		quote.Price = doc.Find("#Nse_Prc_tick").Text()
+	}
+	fmt.Print("hello")
+	fmt.Print(doc.Find("div #n_changetext").Text())
+	return Quote{}, nil
 }

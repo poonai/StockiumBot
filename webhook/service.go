@@ -16,6 +16,7 @@ type Service interface {
 	sendSuggestion(id string, msg string)
 	sendFinancialData(id string, companyID string)
 	addToWatchlist(senderID string, companyURL string)
+	sendWishList(senderID string) error
 }
 
 type service struct {
@@ -76,10 +77,16 @@ func (s service) sendFinancialData(id string, companyID string) {
 					Market Captital: ` + strconv.FormatFloat(data.WarehouseSet.MarketCapitalization, 'f', 2, 64) + `
 		`
 	var reply []fb.QuickReplie
+	var code string
+	if data.BseCode != "" {
+		code = data.BseCode
+	} else {
+		code = data.NseCode
+	}
 	reply = append(reply, fb.QuickReplie{
 		ContentType: "text",
 		Title:       "Add to Watchlist",
-		Payload:     "ADDWATCHLIST:" + companyID,
+		Payload:     "ADDWATCHLIST:" + code,
 	})
 	response := fb.Message{
 		Recipient: map[string]interface{}{"id": id},
@@ -139,4 +146,15 @@ func (s service) addToWatchlist(senderID string, companyURL string) {
 
 	}
 
+}
+
+func (s service) sendWishList(senderID string) error {
+	wb := &Webhook{}
+	err := s.repo.Select(senderID, bson.M{"senderID": 0}, wb)
+	if err != nil {
+		return err
+	}
+	_ = wb.Portfolio
+
+	return nil
 }

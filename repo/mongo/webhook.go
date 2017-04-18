@@ -31,3 +31,7 @@ func (c webhookRepo) Update(senderID string, update bson.M) error {
 	_, err := c.collection.Upsert(bson.M{"senderId": senderID}, update)
 	return err
 }
+
+func (c webhookRepo) Select(senderID string, selectQ bson.M, wb *webhook.Webhook) error {
+	return c.collection.Find(bson.M{"senderID": senderID}).Select(selectQ).One(wb)
+}

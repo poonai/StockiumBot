@@ -73,3 +73,19 @@ func (l logger) addToWatchlist(senderID string, companyURL string) {
 	}(time.Now())
 	l.s.addToWatchlist(senderID, companyURL)
 }
+
+func (l logger) sendWishList(senderID string) error {
+	err := l.s.sendWishList(senderID)
+	defer func(begin time.Time) {
+		if err != nil {
+			l.log.WithFields(logrus.Fields{
+				"start_at":  begin.String(),
+				"end_at":    time.Since(begin).String(),
+				"service":   "sendWishList",
+				"sender_id": senderID,
+				"error":     err.Error(),
+			}).Warn("SERVICE")
+		}
+	}(time.Now())
+	return nil
+}
