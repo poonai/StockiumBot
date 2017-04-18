@@ -1,9 +1,7 @@
 package webhook
 
 import (
-	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -15,6 +13,9 @@ import (
 // Service haing interface of service
 type Service interface {
 	echo(req request) string
+	sendSuggestion(id string, msg string)
+	sendFinancialData(id string, companyID string)
+	addToWatchlist(senderID string, companyURL string)
 }
 
 type service struct {
@@ -31,26 +32,10 @@ func (s service) echo(req request) string {
 	//go sendSuggestion(id, msg)
 	//go fb.Send(id, msg)
 
-	if len(req.Entry[0].Messaging[0].Message.QuickReply) > 0 {
-		quickReply := req.Entry[0].Messaging[0].Message.QuickReply
-		payload := quickReply["payload"].(string)
-		sep := strings.Split(payload, ":")
-		switch sep[0] {
-		case "FINANCIALDATA":
-			fmt.Print(sep)
-			go sendFinancialData(req.Entry[0].Messaging[0].Sender.ID, sep[1])
-			break
-		case "ADDWATCHLIST":
-			addToWatchlist(s.repo, req.Entry[0].Messaging[0].Sender.ID, sep[1])
-			break
-		}
-	} else {
-		sendSuggestion(req.Entry[0].Messaging[0].Sender.ID, req.Entry[0].Messaging[0].Message.Text)
-	}
 	return "sd"
 }
 
-func sendSuggestion(id string, msg string) {
+func (s service) sendSuggestion(id string, msg string) {
 	text := "Do you mean?"
 	stocks, _ := screener.SearchStock(msg)
 	var reply []fb.QuickReplie
@@ -72,7 +57,7 @@ func sendSuggestion(id string, msg string) {
 	fb.SendStockSuggestion(response)
 }
 
-func sendFinancialData(id string, companyID string) {
+func (s service) sendFinancialData(id string, companyID string) {
 	data, err := screener.GetFinancialData(companyID)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -103,8 +88,8 @@ func sendFinancialData(id string, companyID string) {
 	fb.SendStockSuggestion(response)
 }
 
-func addToWatchlist(r Repo, senderID string, companyURL string) {
-	count, err := r.Count(senderID)
+func (s service) addToWatchlist(senderID string, companyURL string) {
+	count, err := s.repo.Count(senderID)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -113,43 +98,45 @@ func addToWatchlist(r Repo, senderID string, companyURL string) {
 			Currently we not able to accept your request.
 			Our engineers working hard to solve isue.Thank You
 			`)
-	}
-	var wb Webhook
-
-	if count == 0 {
-		wb.CreatedAt = time.Now()
-		wb.UpdatedAt = time.Now()
-		wb.SenderID = senderID
-		wb.Portfolio = []string{companyURL}
-
-		err = r.insert(wb)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Warn("MONGO INSERT ERROR")
-			errorSend(senderID, `
-				Currently we not able to accept your request.
-				Our engineers working hard to solve isue.Thank You
-				`)
-		} else {
-			fb.Send(senderID, `
-				Watchlist updated sucessfully`)
-		}
-
 	} else {
-		err = r.Update(senderID, bson.M{"$addToset": bson.M{"Portfolio": companyURL}})
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Warn("MONGO UPDATE ERROR")
-			errorSend(senderID, `
-				Currently we not able to accept your request.
-				Our engineers working hard to solve isue.Thank You
-				`)
+
+		if count == 0 {
+
+			err = s.repo.Insert(Webhook{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+				SenderID:  senderID,
+				Portfolio: []string{companyURL},
+			})
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("MONGO INSERT ERROR")
+				errorSend(senderID, `
+					Currently we not able to accept your request.
+					Our engineers working hard to solve isue.Thank You
+					`)
+			} else {
+				fb.Send(senderID, `
+					Watchlist updated sucessfully`)
+			}
+
 		} else {
-			fb.Send(senderID, `
-				Watchlist updated sucessfully`)
+			err = s.repo.Update(senderID, bson.M{"$addToSet": bson.M{"portfolio": companyURL}})
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("MONGO UPDATE ERROR")
+				errorSend(senderID, `
+					Currently we not able to accept your request.
+					Our engineers working hard to solve isue.Thank You
+					`)
+			} else {
+				fb.Send(senderID, `
+					Watchlist updated sucessfully`)
+			}
 		}
+
 	}
 
 }

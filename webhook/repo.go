@@ -6,7 +6,7 @@ import (
 
 // Repo is the interface of webhook mongo db
 type Repo interface {
-	insert(wb *Webhook) error
+	Insert(wb Webhook) error
 	Count(SenderID string) (int, error)
 	Update(SenderID string, update bson.M) error
 }

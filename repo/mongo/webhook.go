@@ -15,8 +15,8 @@ func NewRepo(c *mgo.Collection) webhook.Repo {
 	return webhookRepo{collection: c}
 }
 
-func (c webhookRepo) insert(wb *webhook.Webhook) error {
-	return c.insert(wb)
+func (c webhookRepo) Insert(wb webhook.Webhook) error {
+	return c.collection.Insert(wb)
 }
 
 func (c webhookRepo) Count(senderID string) (int, error) {
@@ -28,5 +28,6 @@ func (c webhookRepo) Count(senderID string) (int, error) {
 }
 
 func (c webhookRepo) Update(senderID string, update bson.M) error {
-	return c.collection.Update(bson.M{"senderId": senderID}, update)
+	_, err := c.collection.Upsert(bson.M{"senderId": senderID}, update)
+	return err
 }

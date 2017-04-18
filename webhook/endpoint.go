@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"net/http"
 
@@ -29,9 +30,25 @@ type request struct {
 func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		r := req.(request)
+		if len(r.Entry[0].Messaging[0].Message.QuickReply) > 0 {
+			quickReply := r.Entry[0].Messaging[0].Message.QuickReply
+			payload := quickReply["payload"].(string)
+			sep := strings.Split(payload, ":")
+			switch sep[0] {
+			case "FINANCIALDATA":
+				fmt.Print(sep)
+				go svc.sendFinancialData(r.Entry[0].Messaging[0].Sender.ID, sep[1])
+				break
+			case "ADDWATCHLIST":
+				go svc.addToWatchlist(r.Entry[0].Messaging[0].Sender.ID, sep[1])
+				break
+			}
+		} else {
+			go svc.sendSuggestion(r.Entry[0].Messaging[0].Sender.ID, r.Entry[0].Messaging[0].Message.Text)
+		}
 
-		result := svc.echo(r)
-		return result, nil
+		//result := svc.echo(r)
+		return "sup", nil
 	}
 }
 
