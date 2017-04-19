@@ -2,7 +2,6 @@ package webhook
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"net/http"
@@ -39,11 +38,14 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 			sep := strings.Split(payload, ":")
 			switch sep[0] {
 			case "FINANCIALDATA":
-				fmt.Print(sep)
+
 				go svc.sendFinancialData(r.Entry[0].Messaging[0].Sender.ID, sep[1])
 				break
 			case "ADDWATCHLIST":
 				go svc.addToWatchlist(r.Entry[0].Messaging[0].Sender.ID, sep[1])
+				break
+			case "COMMANDNO":
+				go svc.echo(r.Entry[0].Messaging[0].Sender.ID, `it's okay,still you can serach stock`)
 				break
 			}
 		} else {
@@ -53,8 +55,10 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 				if sep[0] == "COMMAND" {
 					switch sep[1] {
 					case "VIEWWATCHLIST":
-						fmt.Print("add wish list")
+						svc.sendWishList(r.Entry[0].Messaging[0].Sender.ID)
 						break
+					case "VIEWACTIVESTOCKS":
+						svc.viewActiveStocks(r.Entry[0].Messaging[0].Sender.ID)
 					}
 				}
 			} else {
@@ -76,8 +80,6 @@ func echoRequestDecoder(_ context.Context, r *http.Request) (interface{}, error)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Print(req)
-
 	return req, nil
 }
 

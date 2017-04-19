@@ -2,21 +2,26 @@ package webhook
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/ryanuber/columnize"
+	"github.com/sch00lb0y/StockiumBot/et"
 	"github.com/sch00lb0y/StockiumBot/fb"
+	"github.com/sch00lb0y/StockiumBot/moneycontrol"
 	"github.com/sch00lb0y/StockiumBot/screener"
 	"gopkg.in/mgo.v2/bson"
 )
 
 // Service haing interface of service
 type Service interface {
-	echo(req request) string
+	echo(senderID string, message string) string
 	sendSuggestion(id string, msg string)
 	sendFinancialData(id string, companyID string)
 	addToWatchlist(senderID string, companyURL string)
 	sendWishList(senderID string) error
+	viewActiveStocks(senderID string) error
 }
 
 type service struct {
@@ -28,10 +33,9 @@ func NewService(repo Repo) service {
 	return service{repo}
 }
 
-func (s service) echo(req request) string {
-	//fmt.Print(msg)
-	//go sendSuggestion(id, msg)
-	//go fb.Send(id, msg)
+func (s service) echo(senderID string, message string) string {
+
+	go fb.Send(senderID, message)
 
 	return "sd"
 }
@@ -65,17 +69,17 @@ func (s service) sendFinancialData(id string, companyID string) {
 			"MESSAGE": err.Error(),
 		}).Warn("Financial Data Error")
 	}
-	text := `
-	        Name:    ` + data.Name + `
-					HighPrice:` + strconv.FormatFloat(data.WarehouseSet.HighPrice, 'f', 2, 64) + `
-					LowPrice:  ` + strconv.FormatFloat(data.WarehouseSet.LowPrice, 'f', 2, 64) + `
-					CurrentPrice:` + strconv.FormatFloat(data.WarehouseSet.CurrentPrice, 'f', 2, 64) + `
-					Dividend Yeild:` + strconv.FormatFloat(data.WarehouseSet.DividendYield, 'f', 2, 64) + `
-					Face Value: ` + strconv.FormatFloat(data.WarehouseSet.FaceValue, 'f', 2, 64) + `
-					Book Value: ` + strconv.FormatFloat(data.WarehouseSet.BookValue, 'f', 2, 64) + `
-					Industry: ` + data.WarehouseSet.Industry + `
-					Market Captital: ` + strconv.FormatFloat(data.WarehouseSet.MarketCapitalization, 'f', 2, 64) + `
+	text := []string{`Name          |` + data.Name,
+		`HighPrice     |` + strconv.FormatFloat(data.WarehouseSet.HighPrice, 'f', 2, 64),
 		`
+					 LowPrice      |` + strconv.FormatFloat(data.WarehouseSet.LowPrice, 'f', 2, 64), `
+					 CurrentPrice  |` + strconv.FormatFloat(data.WarehouseSet.CurrentPrice, 'f', 2, 64), `
+					 Dividend Yeild|` + strconv.FormatFloat(data.WarehouseSet.DividendYield, 'f', 2, 64), `
+					 Face Value    |` + strconv.FormatFloat(data.WarehouseSet.FaceValue, 'f', 2, 64), `
+					 Book Value    |` + strconv.FormatFloat(data.WarehouseSet.BookValue, 'f', 2, 64), `
+					 Industry      |` + data.WarehouseSet.Industry, `
+					 Market Cap    |` + strconv.FormatFloat(data.WarehouseSet.MarketCapitalization, 'f', 2, 64), `
+					 `}
 	var reply []fb.QuickReplie
 	var code string
 	if data.BseCode != "" {
@@ -88,9 +92,14 @@ func (s service) sendFinancialData(id string, companyID string) {
 		Title:       "Add to Watchlist",
 		Payload:     "ADDWATCHLIST:" + code,
 	})
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "No",
+		Payload:     "COMMANDNO:WATCHLIST",
+	})
 	response := fb.Message{
 		Recipient: map[string]interface{}{"id": id},
-		Message:   map[string]interface{}{"text": text, "quick_replies": reply},
+		Message:   map[string]interface{}{"text": columnize.SimpleFormat(text), "quick_replies": reply},
 	}
 	fb.SendStockSuggestion(response)
 }
@@ -149,12 +158,84 @@ func (s service) addToWatchlist(senderID string, companyURL string) {
 }
 
 func (s service) sendWishList(senderID string) error {
-	wb := &Webhook{}
-	err := s.repo.Select(senderID, bson.M{"senderID": 0}, wb)
+	var wb Webhook
+	err := s.repo.Select(senderID, &wb)
+	if err != nil {
+
+		return err
+	}
+	var quote []moneycontrol.Quote
+	var wg sync.WaitGroup
+	var errs error
+	for x := range wb.Portfolio {
+		wg.Add(1)
+		go func(index int) {
+			q, err := moneycontrol.GetQuote(wb.Portfolio[index])
+			if err != nil {
+				errs = err
+				wg.Done()
+			} else {
+				quote = append(quote, q)
+				wg.Done()
+			}
+		}(x)
+	}
+	wg.Wait()
+	if errs != nil {
+		return errs
+	}
+	flag := 0
+	output := ""
+	text := []string{}
+	length := len(quote)
+	for x := range quote {
+		flag += 1
+		text = append(text, "NAME|"+quote[x].Name)
+		text = append(text, "PRICE|"+quote[x].Price)
+		text = append(text, "Change %|"+quote[x].ChangePercent)
+		text = append(text, "Change |"+quote[x].Change)
+
+		output += columnize.SimpleFormat(text) + "\n ------------\n"
+		text = []string{}
+		if (flag-length) == 0 || flag == 5 {
+			length = length - flag
+			response := fb.Message{
+				Recipient: map[string]interface{}{"id": senderID},
+				Message:   map[string]interface{}{"text": output},
+			}
+			go fb.SendStockSuggestion(response)
+			flag = 0
+			output = ""
+		}
+	}
+	return nil
+}
+
+func (s service) viewActiveStocks(senderID string) error {
+	stocks, err := et.ActiveStocks()
 	if err != nil {
 		return err
 	}
-	_ = wb.Portfolio
+	var text []string
+	flag := 0
+	output := ""
+	for index := 0; index < len(stocks); index++ {
+		flag += 1
+		text = append(text, "NAME|"+stocks[index].Name)
+		text = append(text, "PRICE|"+stocks[index].Price)
+		text = append(text, "VOLUME|"+stocks[index].Volume)
+		output += columnize.SimpleFormat(text) + "\n ------------\n"
+		text = []string{}
+		if flag == 5 {
+			response := fb.Message{
+				Recipient: map[string]interface{}{"id": senderID},
+				Message:   map[string]interface{}{"text": output},
+			}
+			go fb.SendStockSuggestion(response)
+			flag = 0
+			output = ""
+		}
+	}
 
 	return nil
 }

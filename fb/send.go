@@ -47,7 +47,7 @@ type QuickReplie struct {
 func SendStockSuggestion(msg Message) {
 	query := url.Values{}
 	query.Add("access_token", os.Getenv("FB_PAGE_TOKEN"))
-	res, err := goreq.Request{
+	r, err := goreq.Request{
 		Uri:         "https://graph.facebook.com/v2.6/me/messages",
 		QueryString: query,
 		Method:      "POST",
@@ -57,7 +57,6 @@ func SendStockSuggestion(msg Message) {
 	}.Do()
 	if err != nil {
 		fmt.Print(err.Error())
-	} else {
-		fmt.Print(res.Body.ToString())
 	}
+	fmt.Print(r.Body.ToString())
 }

@@ -1,38 +1,50 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/Sirupsen/logrus"
+	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-zoo/bone"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/sch00lb0y/StockiumBot/moneycontrol"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/sch00lb0y/StockiumBot/repo/mongo"
 	"github.com/sch00lb0y/StockiumBot/webhook"
 )
 
 func main() {
-	fmt.Print(strconv.FormatFloat(23.23, 'f', 2, 64))
+	// fmt.Print(strconv.FormatFloat(23.23, 'f', 2, 64))
 	session, err := mgo.Dial(os.Getenv("DB_URL"))
 	if err != nil {
 		panic(err.Error())
 	}
-	moneycontrol.GetQuote("530405")
 
 	db := session.DB("stockiumbot")
 	fbCollection := db.C("fb")
+
 	log := logrus.New()
 	var ws webhook.Service
 	var wrepo webhook.Repo
 	wrepo = mongo.NewRepo(fbCollection)
-
+	fieldKeys := []string{"method"}
 	ws = webhook.NewService(wrepo)
 	ws = webhook.NewLogger(log, ws)
+	ws = webhook.NewInstrumentation(kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+		Namespace: "api",
+		Subsystem: "facebook_webhook",
+		Name:      "request_count",
+		Help:      "Number of requests received",
+	}, fieldKeys),
+		kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+			Namespace: "api",
+			Subsystem: "facebook_webhook",
+			Name:      "request_latency_microseconds",
+			Help:      "Total duration of requests in microseconds",
+		}, fieldKeys),
+		ws)
 	wsHandler := webhook.MakeHandler(ws)
 	bone := bone.New()
 	//auth := mux.NewRouter()
@@ -40,7 +52,7 @@ func main() {
 	// 	w.Write([]byte(arg2.URL.Query().Get("hub.challenge")))
 	// })
 	// bone.SubRoute("/webhook", auth)
-
 	bone.SubRoute("/webhook", wsHandler)
+	bone.SubRoute("/metrics", stdprometheus.Handler())
 	http.ListenAndServe(":80", bone)
 }

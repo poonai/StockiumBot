@@ -2,8 +2,8 @@ package moneycontrol
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/franela/goreq"
@@ -44,8 +44,11 @@ type Quote struct {
 	Price         string `json:"price"`
 	Change        string `json:"change"`
 	ChangePercent string `json:"changePercent"`
+	Name          string `json:"name"`
+	Volume        string `json:"volume"`
 }
 
+// GetQuote will return quote by taking bse or nse code as a parameter
 func GetQuote(code string) (Quote, error) {
 	suggestion, err := SearchStock(code)
 	if err != nil {
@@ -58,8 +61,22 @@ func GetQuote(code string) (Quote, error) {
 	var quote Quote
 	if doc.Find("#Nse_Prc_tick").Text() != "" {
 		quote.Price = doc.Find("#Nse_Prc_tick").Text()
+	} else {
+		quote.Price = doc.Find("#Bse_Prc_tick").Text()
 	}
-	fmt.Print("hello")
-	fmt.Print(doc.Find("div #n_changetext").Text())
-	return Quote{}, nil
+
+	if doc.Find("#bse_volume > strong:nth-child(1)").Text() != "" {
+		quote.Volume = doc.Find("#bse_volume > strong:nth-child(1)").Text()
+	} else {
+		quote.Volume = doc.Find("#nse_volume > strong:nth-child(1)").Text()
+	}
+	changes := strings.Split(doc.Find("#b_changetext").Text(), " ")
+	//fmt.Print(changes[3])
+	quote.Change = changes[1]
+	quote.ChangePercent = changes[2]
+	quote.ChangePercent = strings.Replace(quote.ChangePercent, "(", " ", -1)
+	quote.ChangePercent = strings.Replace(quote.ChangePercent, ")", " ", -1)
+	quote.Name = doc.Find("h1.b_42").Text()
+
+	return quote, nil
 }
