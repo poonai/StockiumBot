@@ -6,9 +6,12 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
+	"flag"
+
 	"github.com/Sirupsen/logrus"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-zoo/bone"
+	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/sch00lb0y/StockiumBot/repo/mongo"
@@ -47,12 +50,27 @@ func main() {
 		ws)
 	wsHandler := webhook.MakeHandler(ws)
 	bone := bone.New()
-	//auth := mux.NewRouter()
-	// auth.HandleFunc("/", func(w http.ResponseWriter, arg2 *http.Request) {
-	// 	w.Write([]byte(arg2.URL.Query().Get("hub.challenge")))
-	// })
-	// bone.SubRoute("/webhook", auth)
-	bone.SubRoute("/webhook", wsHandler)
+	auth := mux.NewRouter()
+	auth.HandleFunc("/", func(w http.ResponseWriter, arg2 *http.Request) {
+		w.Write([]byte(arg2.URL.Query().Get("hub.challenge")))
+	})
+
+	var mode string
+	var authrization bool
+	flag.BoolVar(&authrization, "auth", false, "facebook webhook auth")
+	flag.Parse()
+	mode = os.Getenv("MODE")
+	if authrization {
+		bone.SubRoute("/webhook", auth)
+	} else {
+		bone.SubRoute("/webhook", wsHandler)
+	}
+
 	bone.SubRoute("/metrics", stdprometheus.Handler())
-	http.ListenAndServe(":80", bone)
+	if mode == "developememt" {
+		http.ListenAndServe(":80", bone)
+	} else {
+		http.ListenAndServeTLS(":80", "/etc/letsencrypt/live/pagupu.in/chain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
+	}
+
 }
