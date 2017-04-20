@@ -7,6 +7,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"flag"
+        "fmt"
 
 	"github.com/Sirupsen/logrus"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
@@ -70,7 +71,11 @@ func main() {
 	if mode == "developememt" {
 		http.ListenAndServe(":80", bone)
 	} else {
-		http.ListenAndServeTLS(":80", "/etc/letsencrypt/live/pagupu.in/chain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
+		err:=http.ListenAndServeTLS(":80", "/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
+               if err!= nil{
+                   fmt.Print(err.Error())
+
+                }
 	}
 
 }
