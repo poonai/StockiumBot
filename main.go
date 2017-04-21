@@ -9,7 +9,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/CossackPyra/pyrahttp"
+	"crypto/tls"
+
 	"github.com/Sirupsen/logrus"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-zoo/bone"
@@ -18,6 +19,7 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/sch00lb0y/StockiumBot/repo/mongo"
 	"github.com/sch00lb0y/StockiumBot/webhook"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -72,7 +74,19 @@ func main() {
 	if mode == "developememt" {
 		http.ListenAndServe(":80", bone)
 	} else {
-		err = pyrahttp.ListenAndServeLetsEncrypt(":80", "/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("pagupu.in"), //your domain here
+			Cache:      autocert.DirCache("certs"),          //folder for storing certificates
+		}
+		http.Handle("/", bone)
+		server := &http.Server{
+			Addr: ":443",
+			TLSConfig: &tls.Config{
+				GetCertificate: certManager.GetCertificate,
+			},
+		}
+		err = server.ListenAndServeTLS("/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem")
 		if err != nil {
 			fmt.Print(err.Error())
 
