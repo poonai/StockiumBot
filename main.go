@@ -7,9 +7,6 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"flag"
-	"fmt"
-
-	"crypto/tls"
 
 	"github.com/Sirupsen/logrus"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
@@ -19,7 +16,6 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/sch00lb0y/StockiumBot/repo/mongo"
 	"github.com/sch00lb0y/StockiumBot/webhook"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -58,42 +54,18 @@ func main() {
 	auth.HandleFunc("/", func(w http.ResponseWriter, arg2 *http.Request) {
 		w.Write([]byte(arg2.URL.Query().Get("hub.challenge")))
 	})
-
-	var mode string
 	var authrization bool
 	flag.BoolVar(&authrization, "auth", false, "facebook webhook auth")
 	flag.Parse()
-	mode = os.Getenv("MODE")
 	if authrization {
 		bone.SubRoute("/webhook", auth)
 	} else {
 		bone.SubRoute("/webhook", wsHandler)
 	}
-
 	bone.SubRoute("/metrics", stdprometheus.Handler())
-	if mode == "developememt" {
-		http.Handle("/", bone)
-		http.ListenAndServe(":80", nil)
+	if os.Getenv("MODE") == "developement" {
+		http.ListenAndServe(":80", bone)
 	} else {
-		certManager := autocert.Manager{
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist("pagupu.in"), //your domain here
-			Cache:      autocert.DirCache("certs"),          //folder for storing certificates
-		}
-		http.Handle("/", bone)
-		server := &http.Server{
-			Addr: ":443",
-			TLSConfig: &tls.Config{
-				GetCertificate: certManager.GetCertificate,
-			},
-		}
-		err = server.ListenAndServeTLS("/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem")
-		//server.ListenAndServe(":80", nil)
-		server.ListenAndServe()
-		if err != nil {
-			fmt.Print(err.Error())
-
-		}
+		http.ListenAndServe(":90", bone)
 	}
-
 }

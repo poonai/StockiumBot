@@ -1,0 +1,5 @@
+pagupu.in {
+           gzip
+           proxy / localhost:90
+}
+
