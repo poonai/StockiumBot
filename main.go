@@ -87,6 +87,7 @@ func main() {
 			},
 		}
 		err = server.ListenAndServeTLS("/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem")
+               http.ListenAndServe(":80",nil)
 		if err != nil {
 			fmt.Print(err.Error())
 
