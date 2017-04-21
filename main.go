@@ -7,8 +7,9 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"flag"
-        "fmt"
+	"fmt"
 
+	"github.com/CossackPyra/pyrahttp"
 	"github.com/Sirupsen/logrus"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-zoo/bone"
@@ -71,11 +72,11 @@ func main() {
 	if mode == "developememt" {
 		http.ListenAndServe(":80", bone)
 	} else {
-		err:=http.ListenAndServeTLS(":80", "/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
-               if err!= nil{
-                   fmt.Print(err.Error())
+		err = pyrahttp.ListenAndServeLetsEncrypt(":80", "/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem", bone)
+		if err != nil {
+			fmt.Print(err.Error())
 
-                }
+		}
 	}
 
 }
