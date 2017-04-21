@@ -72,7 +72,8 @@ func main() {
 
 	bone.SubRoute("/metrics", stdprometheus.Handler())
 	if mode == "developememt" {
-		http.ListenAndServe(":80", bone)
+		http.Handle("/", bone)
+		http.ListenAndServe(":80", nil)
 	} else {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
@@ -87,7 +88,8 @@ func main() {
 			},
 		}
 		err = server.ListenAndServeTLS("/etc/letsencrypt/live/pagupu.in/fullchain.pem", "/etc/letsencrypt/live/pagupu.in/privkey.pem")
-               http.ListenAndServe(":80",nil)
+		//server.ListenAndServe(":80", nil)
+		server.ListenAndServe()
 		if err != nil {
 			fmt.Print(err.Error())
 
