@@ -1,5 +1,4 @@
 pagupu.in {
            gzip
-           proxy / localhost:90
+           proxy /api/ localhost:90
 }
-
