@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"net/http"
@@ -75,7 +76,7 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 // EchoRequestDecoder is used to decode the request
 func echoRequestDecoder(_ context.Context, r *http.Request) (interface{}, error) {
 	var req request
-
+	fmt.Print("hitting")
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err

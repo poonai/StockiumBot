@@ -16,7 +16,6 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/sch00lb0y/StockiumBot/repo/mongo"
 	"github.com/sch00lb0y/StockiumBot/webhook"
-
 )
 
 func main() {
@@ -25,6 +24,9 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+	logrus.WithFields(logrus.Fields{
+		"MONGO": "UP SUCESSFULLY",
+	}).Info("MONGO")
 
 	db := session.DB("stockiumbot")
 	fbCollection := db.C("fb")
