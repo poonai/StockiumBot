@@ -33,44 +33,49 @@ type request struct {
 func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		r := req.(request)
-		if len(r.Entry[0].Messaging[0].Message.QuickReply) > 0 {
-			quickReply := r.Entry[0].Messaging[0].Message.QuickReply
-			payload := quickReply["payload"].(string)
-			sep := strings.Split(payload, ":")
-			switch sep[0] {
-			case "FINANCIALDATA":
+		for _, x := range r.Entry {
+			for _, y := range x.Messaging {
+				if len(y.Message.QuickReply) > 0 {
+					quickReply := y.Message.QuickReply
+					payload := quickReply["payload"].(string)
+					sep := strings.Split(payload, ":")
+					switch sep[0] {
+					case "FINANCIALDATA":
 
-				go svc.sendFinancialData(r.Entry[0].Messaging[0].Sender.ID, sep[1])
-				break
-			case "ADDWATCHLIST":
-				go svc.addToWatchlist(r.Entry[0].Messaging[0].Sender.ID, sep[1])
-				break
-			case "COMMANDNO":
-				go svc.echo(r.Entry[0].Messaging[0].Sender.ID, `it's okay,still you can serach stock`)
-				break
-			case "REMOVEWATCHLIST":
-				go svc.deleteWatchlist(r.Entry[0].Messaging[0].Sender.ID, sep[1])
-			}
-		} else {
-			if r.Entry[0].Messaging[0].PostBack.Payload != "" {
-				payload := r.Entry[0].Messaging[0].PostBack.Payload
-				sep := strings.Split(payload, ":")
-				if sep[0] == "COMMAND" {
-					switch sep[1] {
-					case "VIEWWATCHLIST":
-						svc.sendWishList(r.Entry[0].Messaging[0].Sender.ID)
+						go svc.sendFinancialData(y.Sender.ID, sep[1])
 						break
-					case "VIEWACTIVESTOCKS":
-						svc.viewActiveStocks(r.Entry[0].Messaging[0].Sender.ID)
+					case "ADDWATCHLIST":
+						go svc.addToWatchlist(y.Sender.ID, sep[1])
 						break
-					case "EDITWATCHLIST":
-						svc.editWatchList(r.Entry[0].Messaging[0].Sender.ID)
+					case "COMMANDNO":
+						go svc.echo(y.Sender.ID, `it's okay,still you can serach stock`)
+						break
+					case "REMOVEWATCHLIST":
+						go svc.deleteWatchlist(y.Sender.ID, sep[1])
 					}
-				}
-			} else {
-				go svc.sendSuggestion(r.Entry[0].Messaging[0].Sender.ID, r.Entry[0].Messaging[0].Message.Text)
-			}
+				} else {
+					if y.PostBack.Payload != "" {
+						payload := y.PostBack.Payload
+						sep := strings.Split(payload, ":")
+						if sep[0] == "COMMAND" {
+							switch sep[1] {
+							case "VIEWWATCHLIST":
+								svc.sendWishList(y.Sender.ID)
+								break
+							case "VIEWACTIVESTOCKS":
+								svc.viewActiveStocks(y.Sender.ID)
+								break
+							case "EDITWATCHLIST":
+								svc.editWatchList(y.Sender.ID)
+							}
+						}
+					} else {
+						go svc.sendSuggestion(y.Sender.ID, y.Message.Text)
+					}
 
+				}
+
+			}
 		}
 
 		//result := svc.echo(r)
