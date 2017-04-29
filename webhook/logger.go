@@ -112,3 +112,46 @@ func (l logger) viewActiveStocks(senderID string) error {
 	}(time.Now())
 	return nil
 }
+
+func (l logger) editWatchList(senderID string) error {
+	err := l.s.editWatchList(senderID)
+	defer func(begin time.Time) {
+		if err != nil {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).String(),
+				"service":   "editWatchList",
+				"sender_id": senderID,
+				"error":     err.Error(),
+			}).Warn("SERVICE")
+		} else {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).String(),
+				"service":   "editWatchList",
+				"sender_id": senderID,
+			}).Info("SERVICE")
+		}
+	}(time.Now())
+	return nil
+}
+func (l logger) deleteWatchlist(senderID string, stockID string) error {
+	err := l.s.deleteWatchlist(senderID, stockID)
+	defer func(begin time.Time) {
+		if err != nil {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).String(),
+				"service":   "deleteWatchList",
+				"sender_id": senderID,
+				"stockID":   stockID,
+				"error":     err.Error(),
+			}).Warn("SERVICE")
+		} else {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).String(),
+				"service":   "editWatchList",
+				"sender_id": senderID,
+				"stock_id":  stockID,
+			}).Info("SERVICE")
+		}
+	}(time.Now())
+	return nil
+}

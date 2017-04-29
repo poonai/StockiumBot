@@ -25,6 +25,8 @@ type Service interface {
 	addToWatchlist(senderID string, companyURL string)
 	sendWishList(senderID string) error
 	viewActiveStocks(senderID string) error
+	editWatchList(senderID string) error
+	deleteWatchlist(senderID string, stockID string) error
 }
 
 type service struct {
@@ -99,9 +101,13 @@ func (s service) sendFinancialData(id string, companyID string) {
 				 	  Book Value    |` + strconv.FormatFloat(data.WarehouseSet.BookValue, 'f', 2, 64), `
 					  Industry      |` + data.WarehouseSet.Industry, `
 		        Market Cap    |` + strconv.FormatFloat(data.WarehouseSet.MarketCapitalization, 'f', 2, 64), `
-	  	ProfitGrowth 5 Years|` + strconv.FormatFloat(data.WarehouseSet.ProfitGrowth5Years.(float64), 'f', 2, 64), `
 					 Avg ROE 5 Years|` + strconv.FormatFloat(data.WarehouseSet.AverageReturnOnEquity5Years, 'f', 2, 64)}
-	f, ok := data.WarehouseSet.ProfitGrowth3Years.(float64)
+	f, ok := data.WarehouseSet.ProfitGrowth5Years.(float64)
+	if ok {
+		text = append(text, "ProfitGrowth 5 Years |"+strconv.FormatFloat(f, 'f', 2, 64))
+
+	}
+	f, ok = data.WarehouseSet.ProfitGrowth3Years.(float64)
 	if ok {
 		text = append(text, "Profit Growth 3 Yrs"+strconv.FormatFloat(f, 'f', 2, 64))
 	}
@@ -298,7 +304,6 @@ func (s service) addToWatchlist(senderID string, companyURL string) {
 		}
 
 	}
-
 }
 
 func (s service) sendWishList(senderID string) error {
@@ -381,5 +386,75 @@ func (s service) viewActiveStocks(senderID string) error {
 		}
 	}
 
+	return nil
+}
+func (s service) editWatchList(senderID string) error {
+	var wb Webhook
+	err := s.repo.Select(senderID, &wb)
+	if err != nil {
+		return err
+	}
+	type temp struct {
+		Name string
+		ID   string
+	}
+	quote := []temp{}
+	var wg sync.WaitGroup
+	var errs error
+	for x := range wb.Portfolio {
+		wg.Add(1)
+		go func(index int) {
+			q, err := moneycontrol.GetQuote(wb.Portfolio[index])
+			if err != nil {
+				errs = err
+				wg.Done()
+			} else {
+				quote = append(quote, temp{
+					Name: q.Name,
+					ID:   wb.Portfolio[index],
+				})
+				wg.Done()
+			}
+		}(x)
+	}
+	wg.Wait()
+	if errs != nil {
+		return errs
+	}
+	var reply []fb.QuickReplie
+	for i := range quote {
+		reply = append(reply,
+			fb.QuickReplie{
+				ContentType: "text",
+				Title:       quote[i].Name,
+				Payload:     "REMOVEWATCHLIST:" + quote[i].ID,
+			})
+	}
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "Cancel",
+		Payload:     "COMMANDNO:WATCHLIST",
+	})
+	response := fb.Message{
+		Recipient: map[string]interface{}{"id": senderID},
+		Message: map[string]interface{}{"text": "Select stock to remove",
+			"quick_replies": reply,
+		},
+	}
+	fb.SendStockSuggestion(response)
+	return nil
+}
+
+func (s service) deleteWatchlist(senderID string, stockID string) error {
+	err := s.repo.Update(senderID, bson.M{"$pull": bson.M{"portfolio": stockID}})
+	response := fb.Message{}
+	response.Recipient = map[string]interface{}{"id": senderID}
+	if err != nil {
+		response.Message = map[string]interface{}{"text": "something went wrong our engineers working hard to find the issue"}
+		fb.SendStockSuggestion(response)
+		return err
+	}
+	response.Message = map[string]interface{}{"text": "Updated SucessFully"}
+	fb.SendStockSuggestion(response)
 	return nil
 }

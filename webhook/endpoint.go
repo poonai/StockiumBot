@@ -48,6 +48,8 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 			case "COMMANDNO":
 				go svc.echo(r.Entry[0].Messaging[0].Sender.ID, `it's okay,still you can serach stock`)
 				break
+			case "REMOVEWATCHLIST":
+				go svc.deleteWatchlist(r.Entry[0].Messaging[0].Sender.ID, sep[1])
 			}
 		} else {
 			if r.Entry[0].Messaging[0].PostBack.Payload != "" {
@@ -60,6 +62,9 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 						break
 					case "VIEWACTIVESTOCKS":
 						svc.viewActiveStocks(r.Entry[0].Messaging[0].Sender.ID)
+						break
+					case "EDITWATCHLIST":
+						svc.editWatchList(r.Entry[0].Messaging[0].Sender.ID)
 					}
 				}
 			} else {

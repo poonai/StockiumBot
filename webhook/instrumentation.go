@@ -75,3 +75,20 @@ func (i instrumentation) viewActiveStocks(senderID string) error {
 	}(time.Now())
 	return i.s.viewActiveStocks(senderID)
 }
+func (i instrumentation) editWatchList(senderID string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "editWatchList"}
+		i.requestCount.With(lvs...).Add(1)
+		i.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.editWatchList(senderID)
+}
+
+func (i instrumentation) deleteWatchlist(senderID string, stockID string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "editWatchList"}
+		i.requestCount.With(lvs...).Add(1)
+		i.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.deleteWatchlist(senderID, stockID)
+}
