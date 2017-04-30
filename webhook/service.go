@@ -316,27 +316,28 @@ func (s service) sendWishList(senderID string) error {
 	var quote []moneycontrol.Quote
 	var wg sync.WaitGroup
 	var errs error
-	for x := range wb.Portfolio {
-		wg.Add(1)
-		go func(index int) {
-			q, err := moneycontrol.GetQuote(wb.Portfolio[index])
-			if err != nil {
-				errs = err
-				wg.Done()
-			} else {
-				quote = append(quote, q)
-				wg.Done()
-			}
-		}(x)
-	}
-	wg.Wait()
-	if errs != nil {
-		return errs
-	}
-	flag := 0
-	output := ""
-	text := []string{}
-	if len(quote) > 0 {
+	if len(wb.Portfolio) > 0 {
+		for x := range wb.Portfolio {
+			wg.Add(1)
+			go func(index int) {
+				q, err := moneycontrol.GetQuote(wb.Portfolio[index])
+				if err != nil {
+					errs = err
+					wg.Done()
+				} else {
+					quote = append(quote, q)
+					wg.Done()
+				}
+			}(x)
+		}
+		wg.Wait()
+		if errs != nil {
+			return errs
+		}
+		flag := 0
+		output := ""
+		text := []string{}
+
 		length := len(quote)
 		for x := range quote {
 			flag += 1
@@ -358,8 +359,9 @@ func (s service) sendWishList(senderID string) error {
 				output = ""
 			}
 		}
+
 	} else {
-		fb.Send(senderID, "Add stocks to your watchlist to see.")
+		fb.Send(senderID, "You don't have stock in watchlist to see")
 	}
 
 	return nil
