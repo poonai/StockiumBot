@@ -336,27 +336,32 @@ func (s service) sendWishList(senderID string) error {
 	flag := 0
 	output := ""
 	text := []string{}
-	length := len(quote)
-	for x := range quote {
-		flag += 1
-		text = append(text, "NAME|"+quote[x].Name)
-		text = append(text, "PRICE|"+quote[x].Price)
-		text = append(text, "Change |"+quote[x].ChangePercent)
-		text = append(text, "Change |"+quote[x].Change)
+	if len(quote) > 0 {
+		length := len(quote)
+		for x := range quote {
+			flag += 1
+			text = append(text, "NAME|"+quote[x].Name)
+			text = append(text, "PRICE|"+quote[x].Price)
+			text = append(text, "Change |"+quote[x].ChangePercent)
+			text = append(text, "Change |"+quote[x].Change)
 
-		output += columnize.SimpleFormat(text) + "\n ------------\n"
-		text = []string{}
-		if (flag-length) == 0 || flag == 5 {
-			length = length - flag
-			response := fb.Message{
-				Recipient: map[string]interface{}{"id": senderID},
-				Message:   map[string]interface{}{"text": output},
+			output += columnize.SimpleFormat(text) + "\n ------------\n"
+			text = []string{}
+			if (flag-length) == 0 || flag == 5 {
+				length = length - flag
+				response := fb.Message{
+					Recipient: map[string]interface{}{"id": senderID},
+					Message:   map[string]interface{}{"text": output},
+				}
+				go fb.SendStockSuggestion(response)
+				flag = 0
+				output = ""
 			}
-			go fb.SendStockSuggestion(response)
-			flag = 0
-			output = ""
 		}
+	} else {
+		fb.Send(senderID, "Add stocks to your watchlist to see.")
 	}
+
 	return nil
 }
 
