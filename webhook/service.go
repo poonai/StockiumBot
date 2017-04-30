@@ -295,7 +295,7 @@ func (s service) addToWatchlist(senderID string, companyURL string) {
 				}).Warn("MONGO UPDATE ERROR")
 				errorSend(senderID, `
 					Currently we not able to accept your request.
-					Our engineers working hard to solve isue.Thank You
+					Our engineers working hard to solve issue. Thank You
 					`)
 			} else {
 				fb.Send(senderID, `
