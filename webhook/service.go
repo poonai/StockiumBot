@@ -14,6 +14,7 @@ import (
 	"github.com/sch00lb0y/StockiumBot/fb"
 	"github.com/sch00lb0y/StockiumBot/moneycontrol"
 	"github.com/sch00lb0y/StockiumBot/screener"
+	"github.com/sch00lb0y/StockiumBot/stockieai"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -47,24 +48,49 @@ func (s service) echo(senderID string, message string) string {
 
 func (s service) sendSuggestion(id string, msg string) {
 	text := "Do you mean?"
-	stocks, _ := screener.SearchStock(msg)
-	var reply []fb.QuickReplie
-	for i := range stocks {
-		reply = append(reply,
-			fb.QuickReplie{
-				ContentType: "text",
-				Title:       stocks[i].Name,
-				Payload:     "FINANCIALDATA:" + stocks[i].Url,
-			})
+	convo := map[string]bool{
+		"Hi":   true,
+		"K":    true,
+		"okay": true,
 	}
-	if len(reply) == 0 {
-		text = "Sorry, I didn't understand 😰 . Could you type stock name which listed on NSE and BSE"
+	msg = strings.ToLower(msg)
+	if convo[msg] {
+		if msg == "k" || msg == "okay" {
+			fb.Send(id, "Feel Free to ask any thing")
+		} else {
+			res, err := stockieai.GetResponse(msg)
+			if err != nil {
+				fb.Send(id, "Type some stock name to get info")
+			} else {
+				fb.Send(id, res)
+			}
+		}
+	} else {
+		stocks, _ := screener.SearchStock(msg)
+		var reply []fb.QuickReplie
+		for i := range stocks {
+			reply = append(reply,
+				fb.QuickReplie{
+					ContentType: "text",
+					Title:       stocks[i].Name,
+					Payload:     "FINANCIALDATA:" + stocks[i].Url,
+				})
+		}
+		if len(reply) == 0 {
+			res, err := stockieai.GetResponse(msg)
+			if err != nil {
+				text = "type some stock to get info of stock"
+			} else {
+				text = res
+			}
+		}
+		response := fb.Message{
+			Recipient: map[string]interface{}{"id": id},
+			Message:   map[string]interface{}{"text": text, "quick_replies": reply},
+		}
+		fb.SendStockSuggestion(response)
 	}
-	response := fb.Message{
-		Recipient: map[string]interface{}{"id": id},
-		Message:   map[string]interface{}{"text": text, "quick_replies": reply},
-	}
-	fb.SendStockSuggestion(response)
+
 }
 
 func sortKeys(maps map[string]interface{}) []string {
