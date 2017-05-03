@@ -92,3 +92,20 @@ func (i instrumentation) deleteWatchlist(senderID string, stockID string) error 
 	}(time.Now())
 	return i.s.deleteWatchlist(senderID, stockID)
 }
+func (i instrumentation) sendAnnualReport(senderID string, companyURL string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "sendAnnualReport"}
+		i.requestCount.With(lvs...).Add(1)
+		i.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.sendAnnualReport(senderID, companyURL)
+}
+
+func (i instrumentation) sendCashFlow(senderID string, companyURL string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "sendCashFlow"}
+		i.requestCount.With(lvs...).Add(1)
+		i.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.sendCashFlow(senderID, companyURL)
+}

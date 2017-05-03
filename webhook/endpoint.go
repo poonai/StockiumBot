@@ -41,7 +41,6 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 					sep := strings.Split(payload, ":")
 					switch sep[0] {
 					case "FINANCIALDATA":
-
 						go svc.sendFinancialData(y.Sender.ID, sep[1])
 						break
 					case "ADDWATCHLIST":
@@ -52,6 +51,11 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 						break
 					case "REMOVEWATCHLIST":
 						go svc.deleteWatchlist(y.Sender.ID, sep[1])
+					case "ANNUALREPORT":
+						go svc.sendAnnualReport(y.Sender.ID, sep[1])
+						break
+					case "CASHFLOW":
+						svc.sendCashFlow(y.Sender.ID, sep[1])
 					}
 				} else {
 					if y.PostBack.Payload != "" {
@@ -67,6 +71,7 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 								break
 							case "EDITWATCHLIST":
 								svc.editWatchList(y.Sender.ID)
+								break
 							}
 						}
 					} else {

@@ -28,6 +28,8 @@ type Service interface {
 	viewActiveStocks(senderID string) error
 	editWatchList(senderID string) error
 	deleteWatchlist(senderID string, stockID string) error
+	sendAnnualReport(senderID string, companyURL string) error
+	sendCashFlow(senderID string, companyURL string) error
 }
 
 type service struct {
@@ -149,66 +151,186 @@ func (s service) sendFinancialData(id string, companyID string) {
 	} else {
 		code = data.NseCode
 	}
+	reply = financialQuoteReply(companyID, "FINANCIALDATA")
 	reply = append(reply, fb.QuickReplie{
 		ContentType: "text",
 		Title:       "Add to Watchlist",
 		Payload:     "ADDWATCHLIST:" + code,
 	})
+	response := fb.Message{
+		Recipient: map[string]interface{}{"id": id},
+		Message:   map[string]interface{}{"text": columnize.SimpleFormat(text), "quick_replies": reply},
+	}
+	fb.SendStockSuggestion(response)
+	// totalLiabilites := data.NumberSet.Balancesheet[4].([]interface{})[1].(map[string]interface{})
+	// keys := sortKeys(totalLiabilites)
+	// text = []string{}
+	// text = append(text, "Year|Amt")
+	// f, ok = totalLiabilites[keys[2]].(float64)
+	// if ok {
+	// 	text = append(text, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = totalLiabilites[keys[1]].(float64)
+	// if ok {
+	// 	text = append(text, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = totalLiabilites[keys[0]].(float64)
+	// if ok {
+	// 	text = append(text, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// totalAsset := data.NumberSet.Balancesheet[9].([]interface{})[1].(map[string]interface{})
+	// asset := []string{}
+	// asset = append(asset, "Year|Amt")
+	// keys = sortKeys(totalAsset)
+	// f, ok = totalAsset[keys[2]].(float64)
+	// if ok {
+	// 	asset = append(asset, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = totalAsset[keys[1]].(float64)
+	// if ok {
+	// 	asset = append(asset, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = totalAsset[keys[0]].(float64)
+	// if ok {
+	// 	asset = append(asset, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// response = fb.Message{
+	// 	Recipient: map[string]interface{}{"id": id},
+	// 	Message: map[string]interface{}{"text": "\nBalance Sheet\n-------------\nTotal Liabilities \n-------------------\n" + columnize.SimpleFormat(text) +
+	// 		"\n Total Asset \n-------------\n" + columnize.SimpleFormat(asset),
+	// 	}, //"quick_replies": reply},
+	// }
+	//	fb.SendStockSuggestion(response)
+	// OperationProfit := data.NumberSet.Annual[2].([]interface{})[1].(map[string]interface{})
+	// keys = sortKeys(OperationProfit)
+	// op := []string{}
+	// op = append(op, "Year|Amt")
+	// f, ok = OperationProfit[keys[2]].(float64)
+	// if ok {
+	// 	op = append(op, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = OperationProfit[keys[1]].(float64)
+	// if ok {
+	// 	op = append(op, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = OperationProfit[keys[0]].(float64)
+	// if ok {
+	// 	op = append(op, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// ProfitBeforeTax := data.NumberSet.Annual[7].([]interface{})[1].(map[string]interface{})
+	// keys = sortKeys(ProfitBeforeTax)
+	// pbt := []string{}
+	// pbt = append(pbt, "Year|Amt")
+	// f, ok = ProfitBeforeTax[keys[2]].(float64)
+	// if ok {
+	// 	pbt = append(pbt, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = ProfitBeforeTax[keys[1]].(float64)
+	// if ok {
+	// 	pbt = append(pbt, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = ProfitBeforeTax[keys[0]].(float64)
+	// if ok {
+	// 	pbt = append(pbt, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// NetProfit := data.NumberSet.Annual[9].([]interface{})[1].(map[string]interface{})
+	// keys = sortKeys(NetProfit)
+	// np := []string{}
+	// np = append(np, "Year|Amt")
+	// f, ok = NetProfit[keys[2]].(float64)
+	// if ok {
+	// 	np = append(np, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = NetProfit[keys[1]].(float64)
+	// if ok {
+	// 	np = append(np, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = NetProfit[keys[0]].(float64)
+	// if ok {
+	// 	np = append(np, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// CashFlow := data.NumberSet.Cashflow[3].([]interface{})[1].(map[string]interface{})
+	// keys = sortKeys(CashFlow)
+	// cf := []string{}
+	// fmt.Print(CashFlow)
+	// cf = append(cf, "Year|Amt")
+	// f, ok = CashFlow[keys[2]].(float64)
+	// if ok {
+	// 	cf = append(cf, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = CashFlow[keys[1]].(float64)
+	// if ok {
+	// 	cf = append(cf, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// f, ok = NetProfit[keys[0]].(float64)
+	// if ok {
+	// 	cf = append(cf, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	// }
+	// response = fb.Message{
+	// 	Recipient: map[string]interface{}{"id": id},
+	// 	Message: map[string]interface{}{"text": "\nAnnual Report\n-------------\nOperational Profit \n-------------------\n" + columnize.SimpleFormat(op) +
+	// 		"\nProfit Before Tax\n----------\n" + columnize.SimpleFormat(pbt) +
+	// 		"\n Net Profit\n-----------\n" + columnize.SimpleFormat(np) +
+	// 		"\n Cash FLow\n----------\n" + columnize.SimpleFormat(cf),
+	// 		"quick_replies": reply},
+	// }
+	// fb.SendStockSuggestion(response)
+}
+
+func (s service) sendCashFlow(senderID string, companyURL string) error {
+	data, err := screener.GetFinancialData(companyURL)
+	if err != nil {
+		return err
+	}
+	CashFlow := data.NumberSet.Cashflow[3].([]interface{})[1].(map[string]interface{})
+	keys := sortKeys(CashFlow)
+	cf := []string{}
+	fmt.Print(CashFlow)
+	cf = append(cf, "Year|Amt")
+	f, ok := CashFlow[keys[2]].(float64)
+	if ok {
+		cf = append(cf, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	}
+	f, ok = CashFlow[keys[1]].(float64)
+	if ok {
+		cf = append(cf, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	}
+	var reply []fb.QuickReplie
+	var code string
+	if data.BseCode != "" {
+		code = data.BseCode
+	} else {
+		code = data.NseCode
+	}
+	reply = financialQuoteReply(companyURL, "CASHFLOW")
 	reply = append(reply, fb.QuickReplie{
 		ContentType: "text",
-		Title:       "No",
-		Payload:     "COMMANDNO:WATCHLIST",
+		Title:       "Add to Watchlist",
+		Payload:     "ADDWATCHLIST:" + code,
 	})
 
 	response := fb.Message{
-		Recipient: map[string]interface{}{"id": id},
-		Message:   map[string]interface{}{"text": columnize.SimpleFormat(text)}, //"quick_replies": reply},
+		Recipient: map[string]interface{}{"id": senderID},
+		Message: map[string]interface{}{"text": "\n Cash FLow\n----------\n" + columnize.SimpleFormat(cf),
+			"quick_replies": reply},
 	}
 	fb.SendStockSuggestion(response)
-	totalLiabilites := data.NumberSet.Balancesheet[4].([]interface{})[1].(map[string]interface{})
-	keys := sortKeys(totalLiabilites)
-	text = []string{}
-	text = append(text, "Year|Amt")
-	f, ok = totalLiabilites[keys[2]].(float64)
-	if ok {
-		text = append(text, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	return nil
+}
+
+func (s service) sendAnnualReport(senderID string, companyURL string) error {
+	data, err := screener.GetFinancialData(companyURL)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"MESSAGE": err.Error(),
+		}).Warn("Financial Data Error")
 	}
-	f, ok = totalLiabilites[keys[1]].(float64)
-	if ok {
-		text = append(text, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	f, ok = totalLiabilites[keys[0]].(float64)
-	if ok {
-		text = append(text, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	totalAsset := data.NumberSet.Balancesheet[9].([]interface{})[1].(map[string]interface{})
-	asset := []string{}
-	asset = append(asset, "Year|Amt")
-	keys = sortKeys(totalAsset)
-	f, ok = totalAsset[keys[2]].(float64)
-	if ok {
-		asset = append(asset, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	f, ok = totalAsset[keys[1]].(float64)
-	if ok {
-		asset = append(asset, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	f, ok = totalAsset[keys[0]].(float64)
-	if ok {
-		asset = append(asset, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	response = fb.Message{
-		Recipient: map[string]interface{}{"id": id},
-		Message: map[string]interface{}{"text": "\nBalance Sheet\n-------------\nTotal Liabilities \n-------------------\n" + columnize.SimpleFormat(text) +
-			"\n Total Asset \n-------------\n" + columnize.SimpleFormat(asset),
-		}, //"quick_replies": reply},
-	}
-	fb.SendStockSuggestion(response)
+
 	OperationProfit := data.NumberSet.Annual[2].([]interface{})[1].(map[string]interface{})
-	keys = sortKeys(OperationProfit)
+	keys := sortKeys(OperationProfit)
 	op := []string{}
 	op = append(op, "Year|Amt")
-	f, ok = OperationProfit[keys[2]].(float64)
+	f, ok := OperationProfit[keys[2]].(float64)
 	if ok {
 		op = append(op, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
 	}
@@ -252,32 +374,28 @@ func (s service) sendFinancialData(id string, companyID string) {
 	if ok {
 		np = append(np, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
 	}
-	CashFlow := data.NumberSet.Cashflow[3].([]interface{})[1].(map[string]interface{})
-	keys = sortKeys(CashFlow)
-	cf := []string{}
-	fmt.Print(CashFlow)
-	cf = append(cf, "Year|Amt")
-	f, ok = CashFlow[keys[2]].(float64)
-	if ok {
-		cf = append(cf, keys[2]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
+	var reply []fb.QuickReplie
+	var code string
+	if data.BseCode != "" {
+		code = data.BseCode
+	} else {
+		code = data.NseCode
 	}
-	f, ok = CashFlow[keys[1]].(float64)
-	if ok {
-		cf = append(cf, keys[1]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	f, ok = NetProfit[keys[0]].(float64)
-	if ok {
-		cf = append(cf, keys[0]+"|"+strconv.FormatFloat(f, 'f', 2, 64))
-	}
-	response = fb.Message{
-		Recipient: map[string]interface{}{"id": id},
+	reply = financialQuoteReply(companyURL, "ANNUALREPORT")
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "Add to Watchlist",
+		Payload:     "ADDWATCHLIST:" + code,
+	})
+	response := fb.Message{
+		Recipient: map[string]interface{}{"id": senderID},
 		Message: map[string]interface{}{"text": "\nAnnual Report\n-------------\nOperational Profit \n-------------------\n" + columnize.SimpleFormat(op) +
 			"\nProfit Before Tax\n----------\n" + columnize.SimpleFormat(pbt) +
-			"\n Net Profit\n-----------\n" + columnize.SimpleFormat(np) +
-			"\n Cash FLow\n----------\n" + columnize.SimpleFormat(cf),
+			"\n Net Profit\n-----------\n" + columnize.SimpleFormat(np),
 			"quick_replies": reply},
 	}
 	fb.SendStockSuggestion(response)
+	return nil
 }
 
 func (s service) addToWatchlist(senderID string, companyURL string) {
@@ -330,6 +448,38 @@ func (s service) addToWatchlist(senderID string, companyURL string) {
 		}
 
 	}
+}
+
+func financialQuoteReply(ticker string, statement string) []fb.QuickReplie {
+	repies := map[string]fb.QuickReplie{
+		"CASHFLOW": fb.QuickReplie{
+			ContentType: "text",
+			Title:       "Cash Flow",
+			Payload:     "CASHFLOW:" + ticker,
+		},
+		"ANNUALREPORT": fb.QuickReplie{
+			ContentType: "text",
+			Title:       "Annual Report",
+			Payload:     "ANNUALREPORT:" + ticker,
+		},
+		"FINANCIALDATA": fb.QuickReplie{
+			ContentType: "text",
+			Title:       "Financial Data",
+			Payload:     "FINANCIALDATA:" + ticker,
+		},
+		"COMMANDNO": fb.QuickReplie{
+			ContentType: "text",
+			Title:       "No",
+			Payload:     "COMMANDNO:WATCHLIST",
+		},
+	}
+	var reply []fb.QuickReplie
+	for i := range repies {
+		if i != statement {
+			reply = append(reply, repies[i])
+		}
+	}
+	return reply
 }
 
 func (s service) sendWishList(senderID string) error {

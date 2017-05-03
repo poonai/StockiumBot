@@ -155,3 +155,39 @@ func (l logger) deleteWatchlist(senderID string, stockID string) error {
 	}(time.Now())
 	return nil
 }
+func (l logger) sendAnnualReport(senderID string, companyURL string) error {
+	defer func(begin time.Time) {
+		l.log.WithFields(logrus.Fields{
+			"duration":  time.Since(begin).String(),
+			"service":   "sendAnnualReport",
+			"sender_id": senderID,
+			"stock_id":  companyURL,
+		}).Info("SERVICE")
+	}(time.Now())
+	return l.s.sendAnnualReport(senderID, companyURL)
+}
+
+func (l logger) sendCashFlow(senderID string, companyURL string) error {
+	err := l.s.sendCashFlow(senderID, companyURL)
+	defer func(begin time.Time) {
+		if err != nil {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).Seconds(),
+				"service":   "sendCashFlow",
+				"sender_id": senderID,
+				"stock_id":  companyURL,
+				"error":     err.Error(),
+			}).Error("SERVICE")
+		} else {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).Seconds(),
+				"service":   "sendCashFlow",
+				"sender_id": senderID,
+				"stock_id":  companyURL,
+			}).Info("SERVICE")
+		}
+
+	}(time.Now())
+
+	return err
+}
