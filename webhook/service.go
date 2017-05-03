@@ -51,7 +51,7 @@ func (s service) echo(senderID string, message string) string {
 func (s service) sendSuggestion(id string, msg string) {
 	text := "Do you mean?"
 	convo := map[string]bool{
-		"Hi":   true,
+		"hi":   true,
 		"K":    true,
 		"okay": true,
 	}
