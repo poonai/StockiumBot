@@ -684,18 +684,9 @@ func (s service) sendTechnicalScan(senderID string, stockName string) error {
 	}
 	var text string
 	for key, val := range result {
+		text = ""
 		text += "\n--" + key + "--\n"
-		if len(text+val) > 640 {
-			response := fb.Message{
-				Recipient: map[string]interface{}{"id": senderID},
-				Message:   map[string]interface{}{"text": text},
-			}
-			fb.SendStockSuggestion(response)
-			text = ""
-		}
 		text += val
-	}
-	if text != "" {
 		response := fb.Message{
 			Recipient: map[string]interface{}{"id": senderID},
 			Message:   map[string]interface{}{"text": text},

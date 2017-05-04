@@ -57,6 +57,7 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 					case "CASHFLOW":
 						svc.sendCashFlow(y.Sender.ID, sep[1])
 					case "TECHSCAN":
+						sep[1] = strings.Replace(sep[1], ":", "", 1)
 						svc.sendTechnicalScan(y.Sender.ID, sep[1])
 					}
 				} else {
