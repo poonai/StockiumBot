@@ -30,7 +30,6 @@ func main() {
 
 	db := session.DB("stockiumbot")
 	fbCollection := db.C("fb")
-
 	log := logrus.New()
 	var ws webhook.Service
 	var wrepo webhook.Repo

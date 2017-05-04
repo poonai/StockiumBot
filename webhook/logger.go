@@ -191,3 +191,26 @@ func (l logger) sendCashFlow(senderID string, companyURL string) error {
 
 	return err
 }
+
+func (l logger) sendTechnicalScan(senderID string, ticker string) error {
+	err := l.s.sendTechnicalScan(senderID, ticker)
+	defer func(begin time.Time) {
+		if err != nil {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).Seconds(),
+				"service":   "sendTechnicalScan",
+				"sender_id": senderID,
+				"ticker":    ticker,
+				"error":     err.Error(),
+			}).Error("SERVICE")
+		} else {
+			l.log.WithFields(logrus.Fields{
+				"duration":  time.Since(begin).Seconds(),
+				"service":   "sendTechnicalScan",
+				"sender_id": senderID,
+				"ticker":    ticker,
+			}).Info("SERVICE")
+		}
+	}(time.Now())
+	return err
+}

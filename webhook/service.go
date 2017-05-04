@@ -1,7 +1,6 @@
 package webhook
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/sch00lb0y/StockiumBot/moneycontrol"
 	"github.com/sch00lb0y/StockiumBot/screener"
 	"github.com/sch00lb0y/StockiumBot/stockieai"
+	"github.com/sch00lb0y/StockiumBot/techpisa"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -30,6 +30,7 @@ type Service interface {
 	deleteWatchlist(senderID string, stockID string) error
 	sendAnnualReport(senderID string, companyURL string) error
 	sendCashFlow(senderID string, companyURL string) error
+	sendTechnicalScan(senderID string, ticker string) error
 }
 
 type service struct {
@@ -152,10 +153,21 @@ func (s service) sendFinancialData(id string, companyID string) {
 		code = data.NseCode
 	}
 	reply = financialQuoteReply(companyID, "FINANCIALDATA")
+	ticker := ""
+	if data.NseCode != "" {
+		ticker = data.NseCode
+	} else {
+		ticker = "podadey"
+	}
 	reply = append(reply, fb.QuickReplie{
 		ContentType: "text",
 		Title:       "Add to Watchlist",
 		Payload:     "ADDWATCHLIST:" + code,
+	})
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "Technical Scan",
+		Payload:     "TECHSCAN:" + ticker,
 	})
 	response := fb.Message{
 		Recipient: map[string]interface{}{"id": id},
@@ -285,7 +297,7 @@ func (s service) sendCashFlow(senderID string, companyURL string) error {
 	CashFlow := data.NumberSet.Cashflow[3].([]interface{})[1].(map[string]interface{})
 	keys := sortKeys(CashFlow)
 	cf := []string{}
-	fmt.Print(CashFlow)
+
 	cf = append(cf, "Year|Amt")
 	f, ok := CashFlow[keys[2]].(float64)
 	if ok {
@@ -307,6 +319,11 @@ func (s service) sendCashFlow(senderID string, companyURL string) error {
 		ContentType: "text",
 		Title:       "Add to Watchlist",
 		Payload:     "ADDWATCHLIST:" + code,
+	})
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "Technical Scan",
+		Payload:     "TECHSCAN:" + data.Name,
 	})
 
 	response := fb.Message{
@@ -386,6 +403,17 @@ func (s service) sendAnnualReport(senderID string, companyURL string) error {
 		ContentType: "text",
 		Title:       "Add to Watchlist",
 		Payload:     "ADDWATCHLIST:" + code,
+	})
+	ticker := ""
+	if data.NseCode != "" {
+		ticker = data.NseCode
+	} else {
+		ticker = "podadey"
+	}
+	reply = append(reply, fb.QuickReplie{
+		ContentType: "text",
+		Title:       "Technical Scan",
+		Payload:     "TECHSCAN:" + ticker,
 	})
 	response := fb.Message{
 		Recipient: map[string]interface{}{"id": senderID},
@@ -639,5 +667,41 @@ func (s service) deleteWatchlist(senderID string, stockID string) error {
 	}
 	response.Message = map[string]interface{}{"text": "Updated SucessFully"}
 	fb.SendStockSuggestion(response)
+	return nil
+}
+
+func (s service) sendTechnicalScan(senderID string, stockName string) error {
+	ticker, err := techpisa.Search(stockName)
+	if err != nil {
+		fb.Send(senderID, "sorry scans are not available")
+		return err
+	}
+	result, err := techpisa.TechnicalScan(ticker)
+
+	if err != nil {
+		fb.Send(senderID, "sorry scans are not available")
+		return err
+	}
+	var text string
+	for key, val := range result {
+		text += "\n--" + key + "--\n"
+		if len(text+val) > 640 {
+			response := fb.Message{
+				Recipient: map[string]interface{}{"id": senderID},
+				Message:   map[string]interface{}{"text": text},
+			}
+			fb.SendStockSuggestion(response)
+			text = ""
+		}
+		text += val
+	}
+	if text != "" {
+		response := fb.Message{
+			Recipient: map[string]interface{}{"id": senderID},
+			Message:   map[string]interface{}{"text": text},
+		}
+		fb.SendStockSuggestion(response)
+	}
+
 	return nil
 }

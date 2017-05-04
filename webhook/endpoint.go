@@ -56,6 +56,8 @@ func makeEchoEndpoint(svc Service) endpoint.Endpoint {
 						break
 					case "CASHFLOW":
 						svc.sendCashFlow(y.Sender.ID, sep[1])
+					case "TECHSCAN":
+						svc.sendTechnicalScan(y.Sender.ID, sep[1])
 					}
 				} else {
 					if y.PostBack.Payload != "" {

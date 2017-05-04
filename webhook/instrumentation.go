@@ -109,3 +109,12 @@ func (i instrumentation) sendCashFlow(senderID string, companyURL string) error 
 	}(time.Now())
 	return i.s.sendCashFlow(senderID, companyURL)
 }
+
+func (i instrumentation) sendTechnicalScan(senderID string, ticker string) error {
+	defer func(begin time.Time) {
+		lvs := []string{"method", "sendTechnicalScne"}
+		i.requestCount.With(lvs...).Add(1)
+		i.requestLatency.With(lvs...).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.sendTechnicalScan(senderID, ticker)
+}
