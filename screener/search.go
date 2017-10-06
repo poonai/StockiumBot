@@ -2,6 +2,7 @@ package screener
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 
@@ -103,6 +104,7 @@ type FinancialData struct {
 // GetFinancialData returns FinancialData data
 func GetFinancialData(ID string) (FinancialData, error) {
 	uri := FinancialDataAPI + ID
+	fmt.Println(uri)
 	res, err := goreq.Request{
 		Uri:    uri,
 		Accept: "application/json",
@@ -110,7 +112,7 @@ func GetFinancialData(ID string) (FinancialData, error) {
 	if err != nil {
 		return FinancialData{}, err
 	}
-
+	fmt.Print("I'm not here")
 	var data FinancialData
 	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
